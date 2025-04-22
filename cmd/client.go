@@ -1,23 +1,32 @@
 package main
 
 import (
-	socks5 "github.com/armon/go-socks5"
+	"flag"
+	"fmt"
+	"github.com/armon/go-socks5"
 	"goproxy/internal/client"
+	"goproxy/internal/config"
 	"log"
 )
 
 func main() {
-	conf := &socks5.Config{
+	var configFile = flag.String("c", "config.yaml", "Path to config file")
+	flag.Parse()
+
+	config.MustLoad(*configFile)
+
+	socks5Conf := &socks5.Config{
 		Dial: client.DialThroughWebSocket, // 自定义 dialer
 	}
 
-	server, err := socks5.New(conf)
+	server, err := socks5.New(socks5Conf)
 	if err != nil {
 		log.Fatal("Socks5 server init failed:", err)
 	}
 
-	log.Println("SOCKS5 proxy listening on 127.0.0.1:1081")
-	if err := server.ListenAndServe("tcp", "127.0.0.1:1081"); err != nil {
+	addr := fmt.Sprintf("%s:%d", config.C.LocalHost, config.C.LocalPort)
+	log.Println("SOCKS5 proxy listening on ", addr)
+	if err := server.ListenAndServe("tcp", addr); err != nil {
 		log.Fatal("Socks5 Listen error:", err)
 	}
 }

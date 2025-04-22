@@ -1,8 +1,11 @@
 package client
 
 import (
+	"crypto/tls"
+	"fmt"
 	"github.com/gorilla/websocket"
 	"golang.org/x/net/context"
+	"goproxy/internal/config"
 	"goproxy/pkg/frame"
 	"log"
 	"net"
@@ -18,9 +21,16 @@ func DialThroughWebSocket(ctx context.Context, network, addr string) (net.Conn, 
 	log.Println("Dialing via WebSocket:", addr)
 
 	header := http.Header{}
-	header.Set("X-Auth-Token", "your-secret")
+	header.Set("X-Auth-Token", config.C.Password)
 
-	ws, _, err := websocket.DefaultDialer.Dial("ws://127.0.0.1:8080/ws", header)
+	dialer := websocket.Dialer{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true, // true 用于自签名证书调试，正式必须 false
+		},
+	}
+
+	websocketURL := fmt.Sprintf("wss://%s:%d/ws", config.C.RemoteHost, config.C.RemotePort)
+	ws, _, err := dialer.Dial(websocketURL, header)
 	if err != nil {
 		return nil, err
 	}

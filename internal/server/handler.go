@@ -1,6 +1,7 @@
 package server
 
 import (
+	"goproxy/internal/config"
 	"log"
 	"net/http"
 
@@ -15,7 +16,7 @@ var upgrader = websocket.Upgrader{
 
 func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	// 鉴权（可选）
-	if r.Header.Get("X-Auth-Token") != "your-secret" {
+	if r.Header.Get("X-Auth-Token") != config.C.Password {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
