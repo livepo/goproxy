@@ -51,14 +51,21 @@ func handleFrame(ws *websocket.Conn, f *frame.Frame) {
 }
 
 func openRemote(connID uint32, addr []byte, ws *websocket.Conn) {
-	target := string(addr) // e.g., "www.google.com:443"
-	remote, err := net.Dial("tcp", target)
-	if err != nil {
-		log.Println("Dial error:", err)
-		return
-	}
+	var err error
+	var remote net.Conn
+	conn, ok := connMap.Load(connID)
+	if ok {
+		remote = conn.(net.Conn)
+	} else {
+		target := string(addr) // e.g., "www.google.com:443"
+		remote, err = net.Dial("tcp", target)
+		if err != nil {
+			log.Println("Dial error:", err)
+			return
+		}
 
-	connMap.Store(connID, remote)
+		connMap.Store(connID, remote)
+	}
 
 	// 读取响应并返回给客户端
 	go func() {

@@ -3,6 +3,7 @@ package client
 import (
 	"fmt"
 	"github.com/gorilla/websocket"
+	"goproxy/internal/config"
 	"goproxy/pkg/frame"
 	"io"
 	"net"
@@ -56,7 +57,7 @@ func (c *WSConn) listen() {
 	for {
 		_, msg, err := c.ws.ReadMessage()
 		if err != nil {
-			fmt.Println("ead msg err:", err.Error())
+			fmt.Println("read msg err:", err.Error())
 			close(c.closed)
 			return
 		}
@@ -72,15 +73,15 @@ func (c *WSConn) listen() {
 
 func (c *WSConn) LocalAddr() net.Addr {
 	return &net.TCPAddr{
-		IP:   []byte{0, 0, 0, 0},
-		Port: 1081,
+		IP:   net.ParseIP(config.C.LocalHost),
+		Port: config.C.LocalPort,
 		Zone: "local",
 	}
 }
 func (c *WSConn) RemoteAddr() net.Addr {
 	return &net.TCPAddr{
-		Port: 8080,
-		IP:   net.IP(c.ws.RemoteAddr().String()),
+		Port: config.C.RemotePort,
+		IP:   net.ParseIP(config.C.RemoteHost),
 		Zone: "remote",
 	}
 }

@@ -1,7 +1,0 @@
-localHost: "0.0.0.0"
-localPort: 1082
-remoteHost: "0.0.0.0"
-remotePort: 8443
-certPath: "config/certs/server.crt"
-keyPath: "config/certs/server.key"
-password: "passwordhere"
