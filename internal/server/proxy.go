@@ -26,17 +26,20 @@ func handleClient(ws *websocket.Conn) {
 			continue
 		}
 
-		handleFrame(ws, f)
+		err = handleFrame(ws, f)
+		if err != nil {
+			return
+		}
 	}
 }
 
-func handleFrame(ws *websocket.Conn, f *frame.Frame) {
+func handleFrame(ws *websocket.Conn, f *frame.Frame) error {
 	switch f.Type {
 	case 0x01: // 建立连接
 		remote, err := connectRemote(f.ConnID, f.Data)
 		if err != nil {
 			log.Println("connect remote error:", err)
-			ws.Close()
+			return err
 		}
 		go sendToClient(remote, f.ConnID, ws)
 	case 0x02: // 数据转发
@@ -46,6 +49,7 @@ func handleFrame(ws *websocket.Conn, f *frame.Frame) {
 		pong := &frame.Frame{Type: 0x03, ConnID: f.ConnID, Length: 0}
 		ws.WriteMessage(websocket.BinaryMessage, frame.EncodeFrame(pong))
 	}
+	return nil
 }
 
 func connectRemote(connID uint32, addr []byte) (remote net.Conn, err error) {
