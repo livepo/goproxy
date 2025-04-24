@@ -20,39 +20,35 @@ func handleClient(ws *websocket.Conn) {
 			return
 		}
 
-		frame, err := frame.DecodeFrame(msg)
+		f, err := frame.DecodeFrame(msg)
 		if err != nil {
 			log.Println("Decode error:", err)
 			continue
 		}
 
-		handleFrame(ws, frame)
+		handleFrame(ws, f)
 	}
 }
 
 func handleFrame(ws *websocket.Conn, f *frame.Frame) {
 	switch f.Type {
 	case 0x01: // 建立连接
-		openRemote(f.ConnID, f.Data, ws)
-	case 0x02: // 数据转发
-		// time.Sleep(time.Second)
-		if val, ok := connMap.Load(f.ConnID); ok {
-			conn := val.(net.Conn)
-			_, err := conn.Write(f.Data)
-			if err != nil {
-				log.Println("send to remote error:", err)
-				return
-			}
+		remote, err := connectRemote(f.ConnID, f.Data)
+		if err != nil {
+			log.Println("connect remote error:", err)
+			ws.Close()
 		}
+		go sendToClient(remote, f.ConnID, ws)
+	case 0x02: // 数据转发
+		sendToRemote(f.ConnID, f.Data)
+
 	case 0x03: // 心跳
-		pong := &frame.Frame{Type: 0x04, ConnID: f.ConnID, Length: 0}
+		pong := &frame.Frame{Type: 0x03, ConnID: f.ConnID, Length: 0}
 		ws.WriteMessage(websocket.BinaryMessage, frame.EncodeFrame(pong))
 	}
 }
 
-func openRemote(connID uint32, addr []byte, ws *websocket.Conn) {
-	var err error
-	var remote net.Conn
+func connectRemote(connID uint32, addr []byte) (remote net.Conn, err error) {
 	conn, ok := connMap.Load(connID)
 	if ok {
 		remote = conn.(net.Conn)
@@ -66,31 +62,38 @@ func openRemote(connID uint32, addr []byte, ws *websocket.Conn) {
 
 		connMap.Store(connID, remote)
 	}
+	return remote, err
+}
 
-	// 读取响应并返回给客户端
-	go func() {
-		buf := make([]byte, 4096)
-		for {
-			n, err := remote.Read(buf)
-			if err != nil {
-				if err.Error() != "EOF" {
-					log.Println("Read from remote error:", err)
-				}
-				conn, ok := connMap.Load(connID)
-				if ok {
-					conn.(net.Conn).Close()
-					connMap.Delete(connID)
-				}
-				return
-			}
-
-			resp := &frame.Frame{
-				Type:   0x02,
-				ConnID: connID,
-				Length: uint32(n),
-				Data:   buf[:n],
-			}
-			ws.WriteMessage(websocket.BinaryMessage, frame.EncodeFrame(resp))
+// sendToClient 从remote接收数据发往客户端，注意不要阻塞发送通道
+func sendToClient(remote net.Conn, connID uint32, ws *websocket.Conn) {
+	buf := make([]byte, 4096)
+	for {
+		n, err := remote.Read(buf)
+		if err != nil {
+			remote.Close()
+			connMap.Delete(connID)
+			return
 		}
-	}()
+
+		resp := &frame.Frame{
+			Type:   0x02,
+			ConnID: connID,
+			Length: uint32(n),
+			Data:   buf[:n],
+		}
+		ws.WriteMessage(websocket.BinaryMessage, frame.EncodeFrame(resp))
+	}
+}
+
+func sendToRemote(connID uint32, data []byte) {
+	if val, ok := connMap.Load(connID); ok {
+		conn := val.(net.Conn)
+		_, err := conn.Write(data)
+		if err != nil {
+			log.Println("send to remote error:", err)
+			conn.Close()
+			return
+		}
+	}
 }
