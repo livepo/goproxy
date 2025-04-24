@@ -27,6 +27,7 @@ func DialThroughWebSocket(ctx context.Context, network, addr string) (net.Conn, 
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true, // true 用于自签名证书调试，正式必须 false
 		},
+		EnableCompression: true,
 	}
 
 	websocketURL := fmt.Sprintf("wss://%s:%d/ws", config.C.RemoteHost, config.C.RemotePort)
