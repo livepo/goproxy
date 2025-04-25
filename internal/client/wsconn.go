@@ -1,7 +1,6 @@
 package client
 
 import (
-	"fmt"
 	"github.com/gorilla/websocket"
 	"goproxy/internal/config"
 	"goproxy/pkg/frame"
@@ -57,7 +56,6 @@ func (c *WSConn) listen() {
 	for {
 		_, msg, err := c.ws.ReadMessage()
 		if err != nil {
-			fmt.Println("read msg err:", err.Error())
 			close(c.closed)
 			return
 		}

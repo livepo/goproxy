@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"gopkg.in/yaml.v3"
 	"log"
 	"os"
@@ -21,7 +20,6 @@ type Config struct {
 }
 
 func MustLoad(path string) {
-	fmt.Println("path..", path)
 	var config Config
 	yamlFile, err := os.ReadFile(path)
 	if err != nil {
@@ -31,5 +29,4 @@ func MustLoad(path string) {
 	if err != nil {
 	}
 	C = &config
-	fmt.Println("config", C)
 }
