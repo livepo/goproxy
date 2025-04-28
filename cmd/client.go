@@ -4,9 +4,11 @@ import (
 	"flag"
 	"fmt"
 	"github.com/armon/go-socks5"
+	"golang.org/x/net/context"
 	"goproxy/internal/client"
 	"goproxy/internal/config"
 	"log"
+	"net"
 )
 
 func main() {
@@ -15,8 +17,16 @@ func main() {
 
 	config.MustLoad(*configFile)
 
+	mux := client.NewMuxClient()
+
+	go mux.StartReader()
+	go mux.StartWriter()
+
 	socks5Conf := &socks5.Config{
-		Dial: client.DialThroughWebSocket, // 自定义 dialer
+		// Dial: client.DialThroughWebSocket, // 自定义 dialer
+		Dial: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			return mux.Dial(addr)
+		},
 	}
 
 	server, err := socks5.New(socks5Conf)

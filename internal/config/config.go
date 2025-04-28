@@ -16,7 +16,6 @@ type Config struct {
 	RemoteHost string `yaml:"remoteHost"`
 	RemotePort int    `yaml:"remotePort"`
 	Password   string `yaml:"password"`
-	ClientID   string `yaml:"clientID"`
 }
 
 func MustLoad(path string) {
